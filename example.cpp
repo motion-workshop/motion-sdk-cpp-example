@@ -32,6 +32,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <regex>
 #include <sstream>
 #include <string>
 
@@ -55,7 +56,17 @@ public:
   unsigned port;
   std::string separator;
   std::string newline;
+  bool header;
 }; // class command_line_options
+
+
+/**
+  Convert the flat XML <node id="Hips" key="4" ... /> list into a map of
+  4 => "Hips" values. Matches the key of the Format maps.
+*/
+bool parse_name_map(
+  const std::string &xml_node_list,
+  std::map<std::size_t,std::string> &name_map);
 
 
 /**
@@ -117,9 +128,17 @@ int stream_data_to_csv(
     return -1;
   }
 
-  {
+  bool print_header = options.header;
+
+  std::map<std::size_t,std::string> name_map;
+  if (print_header) {
     std::string xml_node_list;
     if (client.getXMLString(xml_node_list)) {
+      if (!parse_name_map(xml_node_list, name_map)) {
+        *error
+          << "failed to parse XML name map";
+        return -1;
+      }
     }
   }
 
@@ -133,10 +152,54 @@ int stream_data_to_csv(
       return -1;
     }
 
-    bool have_output_line = false;
-
-    // Iterate through the entries, one per device.
     auto list = Format::Configurable(data.begin(), data.end());
+
+    if (print_header) {
+      const std::string ChannelName[] = {
+        "Lqw", "Lqx", "Lqy", "Lqz",
+        "cw", "cx", "cy", "cz"
+      };
+
+      bool have_output_line = false;
+      for (const auto &item : list) {
+        auto itr = name_map.find(item.first);
+        if (name_map.end() == itr) {
+          *error
+            << "device missing from name map, unable to print header";
+          return -1;
+        }
+
+        if (8 != item.second.size()) {
+          *error
+            << "expected 8 channels but found " << item.second.size()
+            << ", unable to print header";
+          return -1;
+        }
+
+        for (std::size_t i=0; i<item.second.size(); ++i) {
+          if (have_output_line) {
+            *output << options.separator;
+          } else {
+            have_output_line = true;
+          }
+
+          *output << itr->second << "." << ChannelName[i];
+        }
+      }
+
+      if (!have_output_line) {
+        *error
+          << "unknown data format, unabled to print header";
+        return -1;
+      }
+
+      *output << options.newline;
+
+      print_header = false;
+    }
+    
+    // Iterate through the entries, one per device.
+    bool have_output_line = false;
     for (const auto &item : list) {
       // Iterate through the channels per device. From the channel list we
       // know that each node has 8 channels.
@@ -173,6 +236,31 @@ int stream_data_to_csv(
   return 0;
 }
 
+bool parse_name_map(
+  const std::string &xml_node_list,
+  std::map<std::size_t,std::string> &name_map)
+{
+  // If you have an XML parser go ahead and use that instead. For this example,
+  // we will use regular expressions to avoid a dependency on an external
+  // library.
+  std::regex re("<node id=\"([^\"]+)\" key=\"(\\d+)\"");
+
+  auto itr = std::sregex_iterator(
+    xml_node_list.begin(), xml_node_list.end(),
+    re);
+
+  bool result = false;
+  for (; itr != std::sregex_iterator(); ++itr) {
+    const int key = std::stoi((*itr)[2].str());
+    if (key > 0) {
+      name_map.emplace(key, (*itr)[1]);
+      result = true;
+    }
+  }
+
+  return result;
+}
+
 
 int main(int argc, char **argv)
 {
@@ -203,7 +291,7 @@ int main(int argc, char **argv)
 
 command_line_options::command_line_options()
   : message(), filename(), frames(), address("127.0.0.1"), port(32076),
-    separator(","), newline("\n")
+    separator(","), newline("\n"), header(false)
 {
 }
 
@@ -227,6 +315,8 @@ int command_line_options::parse(int argc, char **argv)
         message = "Missing required argument for --frames";
         return -1;
       }
+    } else if ("--header" == arg) {
+      header = true;
     } else if ("--help" == arg) {
       return 1;
     } else {
@@ -252,6 +342,7 @@ int command_line_options::print_help(std::ostream *out, char *program_name)
     << "  --help         show help message" << newline
     << "  --file arg     output file" << newline
     << "  --frames N     read N frames" << newline
+    << "  --header       show channel names in the first row" << newline
     << newline;
 
   return 1;
