@@ -1,5 +1,11 @@
 # Motion SDK C++ Example
 
+Stream measurement and motion data from the Shadow. Print out the data in
+CSV format.
+
+Each sample in time is one row. Each column is one channel from one device
+or joint in the Shadow skeleton.
+
 ## Build the example
 
 ### Windows
