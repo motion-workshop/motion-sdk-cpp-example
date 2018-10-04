@@ -17,7 +17,9 @@ make
 
 ## Run the example
 
-By default, the example application will read as many samples as possible and print them to the standard output. The samples are printed as they arrive, every ~10 milliseconds.
+By default, the example application will read as many samples as possible and
+print them to the standard output. The samples are printed as they arrive,
+every ~10 milliseconds.
 
 ```
 Usage: example [options...]

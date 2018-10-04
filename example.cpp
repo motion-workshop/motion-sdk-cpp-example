@@ -105,7 +105,7 @@ int stream_data_to_csv(
     //
     // Select the local quaternion (Lq) and positional constraint (c)
     // channels here. 8 numbers per device per frame. Ask for inactive nodes
-    // which are not necssarily attached to a sensor but are animated as part
+    // which are not necessarily attached to a sensor but are animated as part
     // of the Shadow skeleton.
     const std::string xml_definition =
       "<?xml version=\"1.0\"?>"
@@ -197,7 +197,7 @@ int stream_data_to_csv(
 
       print_header = false;
     }
-    
+
     // Iterate through the entries, one per device.
     bool have_output_line = false;
     for (const auto &item : list) {
