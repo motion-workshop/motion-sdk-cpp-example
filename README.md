@@ -8,12 +8,16 @@ Use the Visual Studio project in the main folder. Supports Visual Studio 2017.
 
 ### macOS and Linux
 
+Use make. Uses Clang by default but GCC works as well.
+
 ```
 make
 ```
 
 
 ## Run the example
+
+By default, the example application will read as many samples as possible and print them to the standard output. The samples are printed as they arrive, every ~10 milliseconds.
 
 ```
 Usage: example [options...]
