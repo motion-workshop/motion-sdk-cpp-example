@@ -3,3 +3,5 @@ x64/
 Win32/
 example.sln
 example.vcxproj.user
+*.o
+example
